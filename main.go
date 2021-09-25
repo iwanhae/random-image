@@ -16,17 +16,17 @@ import (
 const (
 	EnvPrefix = "RI"
 
-	EnvS3Endpoint  = EnvPrefix + "_S3_ENDPOINT"
-	EnvS3AccessKey = EnvPrefix + "_S3_ACCESS_KEY"
-	EnvS3SecretKey = EnvPrefix + "_S3_SECRET_KEY"
+	EnvS3Endpoint  = "S3_ENDPOINT"
+	EnvS3AccessKey = "S3_ACCESS_KEY"
+	EnvS3SecretKey = "S3_SECRET_KEY"
 )
 
 func GetMinioCliet(v *viper.Viper) minio.Client {
 	endpoint := v.GetString(EnvS3Endpoint)
 	accessKeyID := v.GetString(EnvS3AccessKey)
 	secretAccessKey := v.GetString(EnvS3SecretKey)
-	useSSL := true
-
+	useSSL := false
+	fmt.Println(endpoint, accessKeyID, secretAccessKey)
 	mc, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
@@ -42,6 +42,7 @@ func main() {
 	v := viper.New()
 	v.SetEnvPrefix(EnvPrefix)
 	if _, err := os.Stat(".env"); os.IsNotExist(err) {
+		log.Println("Load from ENV")
 		v.AutomaticEnv()
 	} else {
 		log.Println("Load from dotenv")
