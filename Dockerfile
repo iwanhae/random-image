@@ -1,5 +1,5 @@
-FROM golang:1.17-buster as server
-RUN apt update && apt install -y libwebp-dev
+FROM golang:1.17-alpine as server
+RUN apk add libwebp-dev build-base
 WORKDIR /app/random-image
 COPY go.mod .
 COPY go.sum .
@@ -16,8 +16,8 @@ COPY web/. /app/web/.
 RUN yarn generate
 
 
-FROM golang:1.17-buster
-RUN apt update && apt install -y libwebp-dev
+FROM alpine:3.10
+RUN apk add libwebp-dev
 WORKDIR /
 COPY --from=server /random-image /random-image
 COPY --from=web /app/web/out/. /web/out/.
