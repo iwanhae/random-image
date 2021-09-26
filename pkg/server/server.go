@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/iwanhae/random-image/pkg/config"
 	"github.com/iwanhae/random-image/pkg/store"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
@@ -20,7 +21,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewServer(mc minio.Client, db *store.Database) *echo.Echo {
+func NewServer(conf config.RandomImageConfig, mc *minio.Client, db *store.Database) *echo.Echo {
 	e := echo.New()
 	e.Use(RequestIDGenerator)
 	e.Use(LoggerMiddleware)
@@ -51,7 +52,7 @@ func NewServer(mc minio.Client, db *store.Database) *echo.Echo {
 			log.Ctx(ctx).Error().Err(err).Msg("id not found")
 			return ErrorResponse(c, 404, err)
 		}
-		obj, err := mc.GetObject(ctx, "images", objMeta.Key, minio.GetObjectOptions{})
+		obj, err := mc.GetObject(ctx, conf.S3BucketName, objMeta.Key, minio.GetObjectOptions{})
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("fail to get obj")
 			return ErrorResponse(c, 500, err)

@@ -51,7 +51,7 @@ func LoggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		log.Ctx(ctx).Info().
 			Str("method", c.Request().Method).
 			Str("ip", c.RealIP()).
-			Str("path", c.Path()).
+			Str("path", c.Request().URL.Path).
 			Int64("duration", time.Since(t).Milliseconds()).
 			Send()
 		return nil

@@ -10,7 +10,11 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "CGO_CFLAGS":"-I/opt/homebrew/include",
+                "CGO_LDFLAGS":"-g -O2 -L/opt/homebrew/lib"
+            }
         }
 
     ]
