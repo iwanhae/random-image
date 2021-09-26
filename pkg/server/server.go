@@ -1,9 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/base64"
+	"fmt"
+	"image"
 	"image/jpeg"
 	"io"
+	"runtime"
 	"strconv"
 
 	"github.com/iwanhae/random-image/pkg/store"
@@ -61,17 +65,11 @@ func NewServer(mc minio.Client, db *store.Database) *echo.Echo {
 				log.Ctx(ctx).Error().Err(err).Msg("fail to decode jpeg")
 				return ErrorResponse(c, 500, err)
 			}
-			if width != 0 || height != 0 {
-				if width == 0 {
-					width = height * 3
-				}
-				if height == 0 {
-					height = width * 3
-				}
-				img = resize.Thumbnail(uint(width), uint(height), img, resize.Lanczos3)
+			err = WebpConverter(ctx, c.Response(), img, width, height, quality)
+			if err != nil {
+				log.Ctx(ctx).Error().Err(err).Msg("fail to encode webp")
+				return ErrorResponse(c, 500, err)
 			}
-			opt, _ := encoder.NewLossyEncoderOptions(encoder.PresetPhoto, float32(quality))
-			err = webp.Encode(c.Response(), img, opt)
 		}
 
 		if err != nil {
@@ -120,4 +118,29 @@ func QueryParamInt(c echo.Context, name string, def int) int {
 		return def
 	}
 	return result
+}
+
+var sem = make(chan int, runtime.NumCPU())
+
+func WebpConverter(ctx context.Context, w io.Writer, img image.Image, width, height, quality int) error {
+	sem <- 1
+	defer func() {
+		<-sem
+	}()
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("Context canceled")
+	default:
+	}
+	if width != 0 || height != 0 {
+		if width == 0 {
+			width = height * 3
+		}
+		if height == 0 {
+			height = width * 3
+		}
+		img = resize.Thumbnail(uint(width), uint(height), img, resize.Lanczos3)
+	}
+	opt, _ := encoder.NewLossyEncoderOptions(encoder.PresetPhoto, float32(quality))
+	return webp.Encode(w, img, opt)
 }

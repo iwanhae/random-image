@@ -70,7 +70,6 @@ func main() {
 			tmp = append(tmp, v)
 			if len(tmp)%1000 == 0 {
 				db.PutBatchObjectMeta(ctx, tmp)
-				fmt.Println(db.Stats(ctx))
 				tmp = []minio.ObjectInfo{}
 			}
 		}
