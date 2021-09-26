@@ -23,11 +23,11 @@ const Home: NextPage = () => {
     const col = JSON.parse(localStorage.getItem("overview-col") || "3") as number
     setWidth(width)
     setCol(col)
-}, [])
-useEffect(() => {
+  }, [])
+  useEffect(() => {
     localStorage.setItem("overview-width", `${width}`)
     localStorage.setItem("overview-col", `${col}`)
-}, [width, col])
+  }, [width, col])
 
   const LoadMore = () => {
     console.log("req")
@@ -77,7 +77,7 @@ useEffect(() => {
                     <Link href={`/g/${item.group}`}>
                       <a href={`/g/${item.group}`}>
                         <img
-                          src={`/data/${item.id}?q=70&w=${width}`}
+                          src={width == 0 ? `/data/${item.id}` : `/data/${item.id}?q=70&w=${width}`}
                           loading="eager"
                           className="MuiImageListItem-img"
                         ></img>

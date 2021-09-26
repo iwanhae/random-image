@@ -45,24 +45,24 @@ const GroupPage: NextPage = () => {
         <h1 style={{ wordWrap: "break-word" }}>{id}</h1>
         <Link href={"/"}><Button variant="contained">Back</Button></Link>
         <div>
-        {[1, 2, 3, 4, 5].map((v) => {
-            return <Button key={`b-${v}`} variant={v == col ? "contained":"outlined"} onClick={() => { setCol(v) }}>{v}</Button>
-        })}
+            {[1, 2, 3, 4, 5].map((v) => {
+                return <Button key={`b-${v}`} variant={v == col ? "contained" : "outlined"} onClick={() => { setCol(v) }}>{v}</Button>
+            })}
         </div>
         <div>
-        {[480, 720, 1024, 1920, 0].map((v) => {
-            return <Button key={`b-${v}`} variant={v == width ? "contained":"outlined"} onClick={() => { setWidth(v) }}>{v}</Button>
-        })}
+            {[480, 720, 1024, 1920, 0].map((v) => {
+                return <Button key={`b-${v}`} variant={v == width ? "contained" : "outlined"} onClick={() => { setWidth(v) }}>{v}</Button>
+            })}
         </div>
         <ImageList variant="masonry" cols={col} gap={8}>
             {imageList.map((item) => {
                 return <ImageListItem key={item.id}>
                     <a href={`/data/${item.id}`} target="_blank" rel="noopener noreferrer">
-                    <img
-                        src={`/data/${item.id}?q=70&w=${width}`}
-                        loading="eager"
-                        className="MuiImageListItem-img"
-                    ></img> 
+                        <img
+                            src={width == 0 ? `/data/${item.id}` : `/data/${item.id}?q=70&w=${width}`}
+                            loading="eager"
+                            className="MuiImageListItem-img"
+                        ></img>
                     </a></ImageListItem>
 
             })}
