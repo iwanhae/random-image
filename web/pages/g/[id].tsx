@@ -15,7 +15,20 @@ const GroupPage: NextPage = () => {
     const { id } = router.query
 
     const [imageList, setImageList] = useState<ObjectMeta[]>([])
-    const [col, setCol] = useState(2)
+    const [col, setCol] = useState(1)
+    const [width, setWidth] = useState(1024)
+
+    useEffect(() => {
+        const width = JSON.parse(localStorage.getItem("detail-width") || "1024") as number
+        const col = JSON.parse(localStorage.getItem("detail-col") || "1") as number
+        setWidth(width)
+        setCol(col)
+    }, [])
+
+    useEffect(() => {
+        localStorage.setItem("detail-width", `${width}`)
+        localStorage.setItem("detail-col", `${col}`)
+    }, [width, col])
 
     useEffect(() => {
         const last = window.location.href.split('/').pop();
@@ -31,17 +44,26 @@ const GroupPage: NextPage = () => {
     return <div>
         <h1 style={{ wordWrap: "break-word" }}>{id}</h1>
         <Link href={"/"}><Button variant="contained">Back</Button></Link>
+        <div>
         {[1, 2, 3, 4, 5].map((v) => {
-            return <Button key={`b-${v}`} variant="outlined" onClick={() => { setCol(v) }}>{v}</Button>
+            return <Button key={`b-${v}`} variant={v == col ? "contained":"outlined"} onClick={() => { setCol(v) }}>{v}</Button>
         })}
+        </div>
+        <div>
+        {[480, 720, 1024, 1920, 0].map((v) => {
+            return <Button key={`b-${v}`} variant={v == width ? "contained":"outlined"} onClick={() => { setWidth(v) }}>{v}</Button>
+        })}
+        </div>
         <ImageList variant="masonry" cols={col} gap={8}>
             {imageList.map((item) => {
                 return <ImageListItem key={item.id}>
+                    <a href={`/data/${item.id}`} target="_blank" rel="noopener noreferrer">
                     <img
-                        src={`/data/${item.id}`}
+                        src={`/data/${item.id}?q=70&w=${width}`}
                         loading="eager"
                         className="MuiImageListItem-img"
-                    ></img> </ImageListItem>
+                    ></img> 
+                    </a></ImageListItem>
 
             })}
         </ImageList>

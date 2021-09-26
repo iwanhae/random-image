@@ -2,12 +2,17 @@ package server
 
 import (
 	"encoding/base64"
+	"image/jpeg"
 	"io"
+	"strconv"
 
 	"github.com/iwanhae/random-image/pkg/store"
+	"github.com/kolesa-team/go-webp/encoder"
+	"github.com/kolesa-team/go-webp/webp"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/minio/minio-go/v7"
+	"github.com/nfnt/resize"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,6 +39,9 @@ func NewServer(mc minio.Client, db *store.Database) *echo.Echo {
 	e.GET("/data/:id", func(c echo.Context) error {
 		ctx := c.Request().Context()
 		id := c.Param("id")
+		width := QueryParamInt(c, "w", 0)
+		height := QueryParamInt(c, "h", 0)
+		quality := QueryParamInt(c, "q", 0)
 		objMeta, err := db.GetObjectMeta(ctx, id)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("id not found")
@@ -44,7 +52,28 @@ func NewServer(mc minio.Client, db *store.Database) *echo.Echo {
 			log.Ctx(ctx).Error().Err(err).Msg("fail to get obj")
 			return ErrorResponse(c, 500, err)
 		}
-		_, err = io.Copy(c.Response(), obj)
+
+		if quality == 0 {
+			_, err = io.Copy(c.Response(), obj)
+		} else {
+			img, err := jpeg.Decode(obj)
+			if err != nil {
+				log.Ctx(ctx).Error().Err(err).Msg("fail to decode jpeg")
+				return ErrorResponse(c, 500, err)
+			}
+			if width != 0 || height != 0 {
+				if width == 0 {
+					width = height * 3
+				}
+				if height == 0 {
+					height = width * 3
+				}
+				img = resize.Thumbnail(uint(width), uint(height), img, resize.Lanczos3)
+			}
+			opt, _ := encoder.NewLossyEncoderOptions(encoder.PresetPhoto, float32(quality))
+			err = webp.Encode(c.Response(), img, opt)
+		}
+
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("fail to send obj")
 			return ErrorResponse(c, 500, err)
@@ -82,4 +111,13 @@ func NewServer(mc minio.Client, db *store.Database) *echo.Echo {
 			HTML5:   true,
 		}))
 	return e
+}
+
+func QueryParamInt(c echo.Context, name string, def int) int {
+	param := c.QueryParam(name)
+	result, err := strconv.Atoi(param)
+	if err != nil {
+		return def
+	}
+	return result
 }
