@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"path"
 
-	"github.com/iwanhae/random-image/pkg/store"
+	"github.com/iwanhae/random-image/pkg/store/meta"
 	"github.com/labstack/echo"
 )
 
@@ -22,13 +22,13 @@ type ObjectMeta struct {
 	Group string `json:"group"`
 }
 
-func CreateObjectMeta(v *store.ObjectMeta) ObjectMeta {
+func CreateObjectMeta(v *meta.ObjectMeta) ObjectMeta {
 
 	return ObjectMeta{
-		ID:   v.ID,
-		Name: path.Base(v.Key),
+		ID:   *v.UUID,
+		Name: path.Base(v.S3Key),
 		Group: base64.StdEncoding.EncodeToString(
-			[]byte(path.Dir(v.Key)),
+			[]byte(path.Dir(v.S3Key)),
 		),
 	}
 }

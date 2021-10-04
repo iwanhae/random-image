@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"reflect"
 
 	"github.com/spf13/viper"
 )
@@ -14,6 +15,9 @@ type RandomImageConfig struct {
 	S3BucketName      string  `mapstructure:"s3_bucket_name"`
 	S3CacheBucketName *string `mapstructure:"s3_cache_bucket_name"`
 	S3EnableTLS       bool    `mapstructure:"s3_enable_tls"`
+
+	MongoURI      string `mapstructure:"mongo_uri"`
+	MongoDatabase string `mapstructure:"mongo_database"`
 }
 
 const (
@@ -21,12 +25,21 @@ const (
 )
 
 func Init() RandomImageConfig {
-	// config
+	var res RandomImageConfig
 	v := viper.New()
 	v.SetEnvPrefix(EnvPrefix)
 	if _, err := os.Stat(".env"); os.IsNotExist(err) {
 		log.Println("Load from ENV")
 		v.AutomaticEnv()
+		rt := reflect.TypeOf(res)
+		for i := 0; i < rt.NumField(); i++ {
+			t := rt.Field(i)
+			tag, ok := t.Tag.Lookup("mapstructure")
+			if !ok {
+				continue
+			}
+			v.BindEnv(tag)
+		}
 	} else {
 		log.Println("Load from dotenv")
 		v.SetConfigType("dotenv")
@@ -37,7 +50,6 @@ func Init() RandomImageConfig {
 		}
 	}
 
-	var res RandomImageConfig
 	err := v.Unmarshal(&res)
 	if err != nil {
 		panic(err)

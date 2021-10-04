@@ -1,4 +1,4 @@
-package storage
+package store
 
 import (
 	"github.com/iwanhae/random-image/pkg/config"

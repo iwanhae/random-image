@@ -2,64 +2,58 @@ package main
 
 import (
 	"context"
+	"io"
+	"io/ioutil"
+	"os"
 	"path"
-	"strings"
 
-	mime "github.com/cubewise-code/go-mime"
 	"github.com/iwanhae/random-image/pkg/config"
-	"github.com/iwanhae/random-image/pkg/server"
-	"github.com/iwanhae/random-image/pkg/storage"
 	"github.com/iwanhae/random-image/pkg/store"
-	"github.com/minio/minio-go/v7"
+	"github.com/iwanhae/random-image/pkg/store/meta"
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	EnvPrefix = "RI"
-
-	EnvS3Endpoint  = "S3_ENDPOINT"
-	EnvS3AccessKey = "S3_ACCESS_KEY"
-	EnvS3SecretKey = "S3_SECRET_KEY"
-)
+const ()
 
 func main() {
+	ctx := context.Background()
 	// config
 	c := config.Init()
 	log.Info().Interface("config", c).Msg("config loaded")
 
-	db := store.NewDatabse()
-
-	// minio
-	ctx := context.Background()
-	mc, err := storage.GetS3Client(c)
+	mc, err := store.GetS3Client(c)
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Send()
+	}
+	moc, err := meta.InitMongoDB(ctx, c)
+	if err != nil {
+		log.Fatal().Err(err).Send()
 	}
 
-	go func() {
-		ch := mc.ListObjects(ctx, c.S3BucketName, minio.ListObjectsOptions{Recursive: true})
-		//
-		tmp := []minio.ObjectInfo{}
-		for v := range ch {
-			if !strings.HasPrefix(mime.TypeByExtension(path.Ext(v.Key)), "image") {
-				continue
-			}
-			tmp = append(tmp, v)
-			if len(tmp)%1000 == 0 {
-				db.PutBatchObjectMeta(ctx, tmp)
-				tmp = []minio.ObjectInfo{}
-			}
-		}
-		db.PutBatchObjectMeta(ctx, tmp)
-		//
-		if s, err := db.Stats(ctx); err == nil {
-			log.Info().Interface("db_stats", s).Msg("done")
-		} else {
-			log.Fatal().Err(err)
-		}
-	}()
+	st, err := store.NewObjectStore(moc, mc, c.S3BucketName)
+	if err != nil {
+		log.Fatal().Err(err).Send()
+	}
 
-	// echo
-	e := server.NewServer(c, mc, db)
-	e.Logger.Fatal(e.Start(":8080"))
+	files, _ := ioutil.ReadDir(".vscode")
+	for _, v := range files {
+		if v.IsDir() {
+			continue
+		}
+		log.Info().Str("file", v.Name()).Msg("uploading")
+		f, _ := os.Open(
+			path.Join(".vscode", v.Name()),
+		)
+		uuid, err := st.PutObject(ctx, meta.ObjectMeta{
+			Path: f.Name(),
+		}, f)
+		if err != nil {
+			log.Error().Err(err).Send()
+		}
+		log.Info().Str("uuid", uuid).Str("file", v.Name()).Msg("uploaded")
+
+		_, r, _ := st.GetReader(ctx, uuid)
+		io.Copy(os.Stdout, r)
+	}
+
 }
